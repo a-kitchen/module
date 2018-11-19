@@ -85,7 +85,7 @@ uint8 dataframe [] = {
 * 192-210 - 菜谱模式。其中：201 - 等待确认，重新设置模式为 193，然后 192 确认
 * 254 - 关机
 
-!(https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
+![模式](https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
 
 ## 错误码 (Key = 0x63)
 
