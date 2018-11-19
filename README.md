@@ -170,38 +170,38 @@ uint8 dataframe [] = {
 #include "knob.h"
 #include "light.h"
 
-#define KEY_LED			0x27
-#define KEY_MODE		0x2d
-#define KEY_RESERVED	0x62
-#define KEY_ERROR		0x63
+#define KEY_LED         0x27
+#define KEY_MODE        0x2d
+#define KEY_RESERVED    0x62
+#define KEY_ERROR       0x63
 
-#define LED_PAIRING		32
-#define LED_READY		128
-#define LED_RUNING		226
-#define LED_STANDBY		0
-#define LED_WAITING		217
+#define LED_PAIRING     32
+#define LED_READY       128
+#define LED_RUNING      226
+#define LED_STANDBY     0
+#define LED_WAITING     217
 
-#define MODE_CONT		193
-#define MODE_DUMMY		0
-#define MODE_PAIRING	132
-#define MODE_READY		2
-#define MODE_RUN		192
-#define MODE_STANDBY	254
-#define MODE_UPGRADE	128
-#define MODE_WAITNEXT	201
+#define MODE_CONT       193
+#define MODE_DUMMY      0
+#define MODE_PAIRING    132
+#define MODE_READY      2
+#define MODE_RUN        192
+#define MODE_STANDBY    254
+#define MODE_UPGRADE    128
+#define MODE_WAITNEXT   201
 
 static uint8 led = LED_STANDBY;
-static uint8 cmode = MODE_STANDBY;	// 本地模式
-static uint8 rmode;					// 远程模式
-static uint8 dataframe[] = {		// 上行数据帧
+static uint8 cmode = MODE_STANDBY;  // 本地模式
+static uint8 rmode;                 // 远程模式
+static uint8 dataframe[] = {        // 上行数据帧
   'A', 'K', 0, 0,
-  KEY_MODE, 0,		// 4
-  KEY_LED, 0,			// 6
-  KEY_RESERVED, 0,	// 8
-  KEY_ERROR, 0,		// 10
+  KEY_MODE, 0,      // 4
+  KEY_LED, 0,       // 6
+  KEY_RESERVED, 0,  // 8
+  KEY_ERROR, 0,     // 10
 };
 
-int8 stream(uint8 value) {			// 解析下行数据
+int8 stream(uint8 value) {          // 解析下行数据
   static uint8 a, k, n;
 
   a += value;
@@ -270,15 +270,15 @@ int main(void) {
 
   for(;;) {
     switch (Event_get()){
-    case EVENT_LPRESS:		// 长按开关机
+    case EVENT_LPRESS:      // 长按开关机
       cmode = rmode == MODE_STANDBY ? MODE_READY : MODE_STANDBY;
       e = 0;
       break;
-    case EVENT_XPRESS:		// 超长按配对
+    case EVENT_XPRESS:      // 超长按配对
       led = LED_PAIRING;
       cmode = MODE_PAIRING;
       break;
-    case EVENT_RELEASE:		// 释放开关
+    case EVENT_RELEASE:     // 释放开关
       if (rmode == MODE_PAIRING)
         cmode = MODE_READY;
       if (rmode == MODE_READY || rmode == MODE_PAIRING) {
@@ -287,7 +287,7 @@ int main(void) {
       } else if (rmode > MODE_CONT)	// 下一步
         cmode = MODE_CONT;
       break;
-    case EVENT_TICK:		// 滴答时钟， 20 次/秒
+    case EVENT_TICK:        // 滴答时钟， 20 次/秒
       Clock_tick();
       Light_tick();
       dataframe[2] = sizeof dataframe;
@@ -299,7 +299,7 @@ int main(void) {
       	('A' + 'K' + sizeof dataframe + KEY_MODE + KEY_LED + KEY_RESERVED + KEY_ERROR);
       SCB_SpiUartPutArray(dataframe, sizeof dataframe);
       break;
-    case EVENT_TURN:		// 旋转按钮
+    case EVENT_TURN:        // 旋转按钮
       if (rmode == MODE_PAIRING)
         cmode = MODE_READY;
       if (rmode == MODE_READY || rmode == MODE_PAIRING) {
@@ -341,7 +341,7 @@ int main(void) {
     }
     Knob_none();
     while(SCB_SpiUartGetRxBufferSize())
-      stream(SCB_SpiUartReadRxData());	// 读取下行数据
+      stream(SCB_SpiUartReadRxData());  // 读取下行数据
   }
 }
 ```
