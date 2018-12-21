@@ -163,6 +163,8 @@ uint8 dataframe [] = {
 1. LED11 - 显示11
 1. LED12 - 显示12
 
+![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/layout.png)
+
 ## 代码例子
 
 ```c
