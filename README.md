@@ -45,6 +45,7 @@ Key2 | Val2
 uint8 dataframe [] = {
   'A', 'K', 20, 0,        // header, len = 20
   0x2d, 0,                // mode
+  0x26, 0,
   0x22, 0, 0x23, 0,       // power
   0x24, 0, 0x25, 0,       // peripheral
   0x68, 0, 0x69, 0,       // temperature
