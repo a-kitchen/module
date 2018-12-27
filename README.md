@@ -87,6 +87,8 @@ uint8 dataframe [] = {
 
 ![模式](https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
 
+正常情况下，上电会将模式初始化成 254 关机。但全新模块没有经过温度校准，模式将会初始化成 132 蓝牙配对。
+
 ## 错误码 (Key = 0x63)
 
 * 4 - 传感器故障
