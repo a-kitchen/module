@@ -133,9 +133,9 @@ uint8 dataframe [] = {
 1. CAP6 - 触摸6
 1. CAP7 - 触摸7
 1. CAP8 - 触摸8
-1. SWA - 编码器A
-1. SWB - 编码器B
-1. SW2 - 开关
+1. SWA - 开关A
+1. SWB - 开关B
+1. SW2 - 开关2
 1. RSV1
 1. RSV2
 1. RSV3
