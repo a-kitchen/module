@@ -136,10 +136,10 @@ uint8 dataframe [] = {
 1. SWA - 开关A
 1. SWB - 开关B
 1. SW2 - 开关2
-1. RSV1
-1. RSV2
-1. RSV3
-1. RSV4
+1. RES1
+1. RES2
+1. RES3
+1. RES4
 1. \__VAA - 模拟电源
 1. \__GNDA - 模拟地
 1. \__NTC - 测温热敏电阻
