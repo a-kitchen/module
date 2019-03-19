@@ -124,7 +124,6 @@ uint8 dataframe [] = {
 
 ## 端子
 
-1. CAPC - 触摸公共端
 1. CAP1 - 触摸1
 1. CAP2 - 触摸2
 1. CAP3 - 触摸3
@@ -133,13 +132,14 @@ uint8 dataframe [] = {
 1. CAP6 - 触摸6
 1. CAP7 - 触摸7
 1. CAP8 - 触摸8
+1. RES1
 1. SWA - 开关A
 1. SWB - 开关B
 1. SW2 - 开关2
-1. RES1
 1. RES2
 1. RES3
 1. RES4
+1. RES5
 1. \__VAA - 模拟电源
 1. \__GNDA - 模拟地
 1. \__NTC - 测温热敏电阻
@@ -162,7 +162,7 @@ uint8 dataframe [] = {
 1. LED9 - 显示9
 1. LED10 - 显示10
 1. LED11 - 显示11
-1. LED12 - 显示12
+1. CAPC - 触摸公共端
 
 ![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/layout.png)
 
