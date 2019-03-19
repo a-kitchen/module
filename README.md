@@ -147,9 +147,9 @@ uint8 dataframe [] = {
 1. \__VDD - 数字电源
 1. \__RX - 串口接收
 1. \__TX - 串口发送
+1. INT
 1. SCL
 1. SDA
-1. INT
 1. COM - 显示背景亮度
 1. LED1 - 显示1
 1. LED2 - 显示2
