@@ -2,7 +2,7 @@
 
 ## 数据帧
 
-* 帧长度 - 4 ~ 254 字节
+* 帧长度 - 4 ~ 128 字节
 * 每帧数据的格式 - 固定的起始头 ( AK 的 ASCII 码 0x41 + 0x4B ) 、引导区 ( Len 本帧数据长度 + Sum 校验和，
 校验和是本帧所有其他数据字节和的补码 )、数据区 ( 每个数据包含键值数据对 Key + Val )
 
@@ -40,23 +40,11 @@ Key2 | Val2
   0x68, 0xa8, 0x69, 0x16, // temperature 58 degrees centigrade (0x16a8)
 ```
 
-数据帧例子
-
-```c
-uint8 dataframe [] = {
-  'A', 'K', 20, 0,        // header, len = 20
-  0x2d, 0,                // mode
-  0x26, 0,
-  0x22, 0, 0x23, 0,       // power
-  0x24, 0, 0x25, 0,       // peripheral
-  0x68, 0, 0x69, 0,       // temperature
-};
-```
-
 ## 上行数据键
 
 * 0x2d - 模式
-* 0x62 - 错误掩码
+* 0x4e - 数据帧格式
+* 0x4f - 设备信息
 * 0x63 - 错误代码
 * 0x64 - 电源电压低字节，单位: 0.01 伏
 * 0x65 - 电源电压高字节，单位: 0.01 伏
@@ -66,7 +54,7 @@ uint8 dataframe [] = {
 * 0x66 - 电源电流低字节，单位: 毫安
 * 0x67 - 电源电流高字节，单位: 毫安
 ```c
-0x66, 0x10, 0x67, 0x27, // current 10a (0x2710)
+  0x66, 0x10, 0x67, 0x27, // current 10a (0x2710)
 ```
 * 0x68 - 锅底温度低字节，单位: 0.01 摄氏度
 * 0x69 - 锅底温度高字节，单位: 0.01 摄氏度
@@ -80,7 +68,8 @@ uint8 dataframe [] = {
 
 * 0 - 无模式
 * 2 - 待机，手动模式
-* 64-95 - 应用模式
+* 32-63 - 应用模式
+* 64-73 - 手动挡位 1-9
 * 128 - 升级固件
 * 132 - 蓝牙配对模式
 * 192-210 - 菜谱模式。其中：197 - 暂停；201 - 等待确认。重新设置模式为 193，然后 192 恢复或确认
@@ -90,24 +79,37 @@ uint8 dataframe [] = {
 
 正常情况下，上电会将模式初始化成 254 关机。但全新模块没有经过温度校准，模式将会初始化成 132 蓝牙配对。
 
+## 数据帧格式 (Key = 0x4e)
+
+如果需要模块发出数据帧：
+
+```c
+uint8 dataframe [] = {
+  'A', 'K', 20, 0,        // header, len = 20
+  0x2d, 0,                // mode
+  0x26, 0,
+  0x22, 0, 0x23, 0,       // power
+  0x24, 0, 0x25, 0,       // peripheral
+  0x68, 0, 0x69, 0,       // temperature
+};
+```
+
+需要进行如下初始化：
+
+```c
+  'A', 'K', 12, (sum), 0x4e, 0x01, 0x24, 0x26, 0x22, 0x23, 0x68, 0x69, // init data frame
+```
+
+## 设备信息 (Key = 0x4f)
+
+
+
 ## 错误码 (Key = 0x63)
 
-* 4 - 传感器故障
-* 5 - 传感器开路
-* 6 - 传感器短路
-* 7 - 传感器引脚故障
-* 8 - IGBT 过热
-* 11 - 有线通信故障
-* 12 - 无线通信故障
-* 16 - 电源故障
-* 17 - 过流
-* 18 - 过压
-* 20 - 无负债
-* 22 - 干锅
-* 26 - 无锅盖
-* 27 - 无锅铲
-* 28 - 无真空
-* 65 - 命令错误
+* 0-63 - 无动作
+* 64-127 - 仅显示
+* 128-191 - 停功率
+* 192-255 - 停机
 
 ## 外设控制掩码 (Key = 0x24, 0x25)
 
@@ -170,183 +172,233 @@ uint8 dataframe [] = {
 ## 代码例子
 
 ```c
-#include "clock.h"
-#include "event.h"
-#include "knob.h"
-#include "light.h"
+#include <clock.h>
+#include <event.h>
+#include <knob.h>
+#include <light.h>
+#include <log.h>
+#include <project.h>
 
 #define KEY_LED         0x27
 #define KEY_MODE        0x2d
-#define KEY_RESERVED    0x62
-#define KEY_ERROR       0x63
+#define KEY_DATAFRAME   0x4e
+#define KEY_ERRMASK     0x62
+#define KEY_ERRCODE     0x63
+#define KEY_TEMP_LO     0x68
+#define KEY_TEMP_HI     0x69
 
+#define LED_BOOTING     48
+#define LED_OFF         64
+#define LED_ON          128
 #define LED_PAIRING     32
-#define LED_READY       128
 #define LED_RUNING      226
-#define LED_STANDBY     0
 #define LED_WAITING     217
 
-#define MODE_CONT       193
-#define MODE_DUMMY      0
-#define MODE_PAIRING    132
-#define MODE_READY      2
-#define MODE_RUN        192
-#define MODE_STANDBY    254
-#define MODE_UPGRADE    128
-#define MODE_WAITNEXT   201
+static U08 cled = LED_OFF;                          // 本地显示
+static U08 cmod = AKMODE_OFF;                       // 本地模式
+static U08 dkey;                                    // 下行数据帧键
+static U08 dlen;                                    // 下行数据帧长度
+static U08 rmod = AKMODE_OFF;                       // 远程模式
+static U08 frame[] = {                              // 上行数据帧
+  'A', 'K', 0, 0,   // header
+  KEY_MODE,    0,   // 4,  5
+  KEY_ERRCODE, 0,   // 6,  7
+  KEY_TEMP_HI, 0,   // 8,  9
+  KEY_TEMP_LO, 0,   // 10, 11
+};                  // 12
 
-static uint8 led = LED_STANDBY;
-static uint8 cmode = MODE_STANDBY;  // 本地模式
-static uint8 rmode;                 // 远程模式
-static uint8 dataframe[] = {        // 上行数据帧
-  'A', 'K', 0, 0,
-  KEY_MODE, 0,      // 4
-  KEY_LED, 0,       // 6
-  KEY_RESERVED, 0,  // 8
-  KEY_ERROR, 0,     // 10
-};
+U08 AkFw_GetParam(U08 key) {                        // 系统编译钩子
+  return key == KEY_LED ? cled : 0;
+}
 
-int8 stream(uint8 value) {          // 解析下行数据
-  static uint8 a, k, n;
+void AkFw_SetParam(U08 key, U08 value) {            // 系统编译钩子
+  if(key == KEY_LED)
+    cled = value;
+}
+
+static void init(void) {
+  static U08 ini_frame[] = {
+    'A', 'K', 0, 0, KEY_DATAFRAME, 1,               // 下行数据帧初始化命令
+    KEY_MODE, KEY_ERRCODE,                          // 下行数据帧格式
+  };
+  if(dkey != KEY_MODE || dlen != 8) {               // 检查下行数据帧格式
+    // 初始化数据帧格式
+    U08 sum;
+    sum = 0;
+    ini_frame[2] = sizeof ini_frame;
+    ini_frame[3] = sum;
+    for(U08 i = 0; i < sizeof ini_frame; i++)
+      sum -= ini_frame[i];
+    ini_frame[3] = sum;
+    SCB_SpiUartPutArray(ini_frame, sizeof ini_frame);
+  }
+}
+
+static void stream(U08 value) {                     // 解析下行数据
+  static U08 a, k, n;
 
   a += value;
   n--;
   switch (k) {
-  case 0:
+  case 0:                                           // 检查帧头
     if (value == 'A')
       k = 1;
-    return 0;
-  case 1:
+    return;
+  case 1:                                           // 检查帧头
     if(value == 'K')
       k = 2;
     else k = value == 'A'? 1 : 0;
-    return k == 1 ? 1 : 0;
+    return;
   case 2:
     if((value & 1) || (value < 4))
       k = value == 'A'? 1 : 0;
     else {
       a = 'A' + 'K' + value;
       k = 3;
-      n = value - 2;
+      n = value - 2;                                // 提取帧长度
+      dlen = value;
     }
-    return k == 1 ? 1: 0;
-  case 3:
+    return;
+  case 3:                                           // 越过校验和
     k = 4;
-    Light_off();
-    return 0;
+    return;
   case 4:
     if(n){
-      k = value;
-      return 0;
+      k = value;                                    // 提取数据键
+      return;
     }
     break;
   default:
-    if(n){
-      switch (k){
-      case KEY_MODE:
-        rmode = value;
-        if (cmode && cmode == rmode)
-          cmode = MODE_DUMMY;
-        else if (rmode == MODE_CONT)
-          cmode = MODE_RUN;				
-        break;
+    if(n){                                          // 未到达帧尾
+      if(n == 3)                                    // 在确定位置
+        dkey = k;                                   //   提取下行数据帧标志
+      if(k == KEY_MODE) {                           // 提取数据值
+        rmod = value;
+        if (rmod == AKMODE_PREP)
+          cmod = AKMODE_RUN;
+        else if (cmod && cmod == rmod)
+          cmod = 0;                                 // 本地数据一致化
       }
       k = 4;
-      return 0;
+      return;
     }
   }
-  a -= value;
-  if (!a)
-    Light_on();
+  if (!(a - value))                                 // 校验和正确
+    Clock_Light(3);
   k = value == 'A' ? 1 : 0;
-  return !a;
 }
 
 int main(void) {
-  uint8 e = 0, v = 5;
-  int m = MODE_STANDBY;
+  U08 mod, sum, vled = 0, vmod = 0;
+  U16 tmpr;
 
   CyGlobalIntEnable;
-
-  Clock_start();
+  Log_Start("\n\n\rPanel\n\r(c) a.kitchen\n\r");
+  Clock_Start();
   SCB_Start();
-  Light_start();
-  Knob_start();
+  Knob_Start();
+  Light_Start();
+
+  Clock_OnBootend();
+  init();
 
   for(;;) {
-    switch (Event_get()){
-    case EVENT_LPRESS:      // 长按开关机
-      cmode = rmode == MODE_STANDBY ? MODE_READY : MODE_STANDBY;
-      e = 0;
+    mod = cmod ? cmod : rmod;
+    switch(Event_Get()){
+    case EVENT_BEAT:                                // 心跳，16 次/秒
+      Clock_OnBeat();
+      Light_OnBeat();
+      tmpr = (Clock_millisecond / 1000) & 0x3fff;   // 模拟温度变化，0.01/s
+
+      frame[2] = sizeof frame;                      // 构建上行数据帧
+      frame[5] = cmod;
+      frame[7] = 0;
+      frame[9] = tmpr >> 8;
+      frame[11] = tmpr;
+      sum = 0;
+      frame[3] = sum;
+      for(U08 i = 0; i < sizeof frame; i++)
+        sum -= frame[i];
+      frame[3] = sum;                               // 校验和
+      SCB_SpiUartPutArray(frame, sizeof frame);     // 发送上行数据帧
+
       break;
-    case EVENT_XPRESS:      // 超长按配对
-      led = LED_PAIRING;
-      cmode = MODE_PAIRING;
+    case EVENT_CLOCK:                               // 时钟，1 次/秒
+      init();                                       // 初始化数据帧格式
       break;
-    case EVENT_RELEASE:     // 释放开关
-      if (rmode == MODE_PAIRING)
-        cmode = MODE_READY;
-      if (rmode == MODE_READY || rmode == MODE_PAIRING) {
-        e = e ? 0 : v;
-        led = LED_READY | e;
-      } else if (rmode > MODE_CONT)	// 下一步
-        cmode = MODE_CONT;
+    case EVENT_IDLE:                                // 空闲
+      Knob_OnIdle();
       break;
-    case EVENT_TICK:        // 滴答时钟， 20 次/秒
-      Clock_tick();
-      Light_tick();
-      dataframe[2] = sizeof dataframe;
-      dataframe[5] = cmode;
-      dataframe[7] = led;
-      dataframe[9] = 0;
-      dataframe[11] = 0;
-      dataframe[3] = - dataframe[5] - dataframe[7] - dataframe[9] - dataframe[11] -
-      	('A' + 'K' + sizeof dataframe + KEY_MODE + KEY_LED + KEY_RESERVED + KEY_ERROR);
-      SCB_SpiUartPutArray(dataframe, sizeof dataframe);
+    case EVENT_LPRESS:                              // 长按
+      if(Knob_key == KNOB_POWER)                    // 电源键开关机
+        cmod = mod == AKMODE_OFF ? AKMODE_L_0 : AKMODE_OFF;
       break;
-    case EVENT_TURN:        // 旋转按钮
-      if (rmode == MODE_PAIRING)
-        cmode = MODE_READY;
-      if (rmode == MODE_READY || rmode == MODE_PAIRING) {
-        int8 d = Knob_delta();
-        e += d;
-        if (e > 127)
-          e = 0;
-        else if (e > 9)
-          e = 9;
-        if (e)
-          v = e;
-        led = LED_READY | e;
+    case EVENT_RELEASE:                             // 释放开关
+      if(mod == AKMODE_OFF)
+        break;
+	  switch(Knob_key) {
+      case KNOB_MINUS:                              // 左转按钮
+        if (mod > AKMODE_L_1)
+          cmod = mod - 1;
+        else if (mod == AKMODE_L_1 || mod == AKMODE_PAIRING)
+          cmod = AKMODE_L_0;
+        break;
+      case KNOB_PLUS:                               // 右转按钮
+        if (mod == AKMODE_L_0 || mod == AKMODE_PAIRING)
+          cmod = AKMODE_L_1;
+        else if (mod < AKMODE_L_9)
+          cmod = mod + 1;
+        break;
+      case KNOB_POWER:                              // 电源键
+        if (mod == AKMODE_L_0 || mod == AKMODE_PAIRING)
+          cmod = AKMODE_L_5;
+        else if (mod >= AKMODE_L_1 || mod <= AKMODE_L_9)
+          cmod = AKMODE_L_0;
+        else if (mod == AKMODE_WAITNEXT || mod == AKMODE_PAUSE)
+          cmod = AKMODE_PREP;                       // 下一步
+        else if (mod > AKMODE_PREP && mod != AKMODE_OFF)
+          cmod = AKMODE_PAUSE;                      // 暂停
+        break;
       }
       break;
+    case EVENT_XPRESS:                              // 超长按
+      if(Knob_key == KNOB_POWER)                    //   电源键配对
+        cmod = AKMODE_PAIRING;
+      break;
     }
-    if (m != rmode) {
-      m = rmode;
+	if(cmod)
+      mod = cmod;
+    if(vmod != mod) {
+      vmod = mod;
       // 设置指示灯
-      switch (m) {
-      case MODE_DUMMY:
+      switch (mod) {
+      case AKMODE_BOOTING:
+        cled = LED_BOOTING;
         break;
-      case MODE_PAIRING:
-        led = LED_PAIRING;
+      case AKMODE_L_0:
+        cled = LED_ON;
         break;
-      case MODE_STANDBY:
-        led = LED_STANDBY;
+      case AKMODE_OFF:
+      case AKMODE_PREP:
+        cled = LED_OFF;
         break;
-      case MODE_WAITNEXT:
-        led = LED_WAITING;
+      case AKMODE_PAIRING:
+        cled = LED_PAIRING;
+        break;
+      case AKMODE_PAUSE:
+      case AKMODE_WAITNEXT:
+        cled = LED_WAITING;
         break;
       default:
-        led = m < MODE_UPGRADE ? LED_READY | e : LED_RUNING;
+        cled = vmod > AKMODE_L_9 ? LED_RUNING : LED_ON - AKMODE_L_1 + 1 + mod;
       }
     }
-    static int d;
-    if (d != led) {
-      Light_indicate(led);
-      d = led;
+    if(vled != cled) {
+      vled = cled;
+      Light_OnParam(KEY_LED);                       // 设置指示灯
     }
-    Knob_none();
-    while(SCB_SpiUartGetRxBufferSize())
-      stream(SCB_SpiUartReadRxData());  // 读取下行数据
+    if(SCB_SpiUartGetRxBufferSize())                // 获取下行数据
+      stream(SCB_SpiUartReadRxData());              // 解析下行数据
   }
 }
 ```
