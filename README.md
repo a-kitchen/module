@@ -129,12 +129,12 @@ device name | 'name'
   0x4f, 0x01,
   'A', 'K', 
   <len>, <sum>,
-  0x55, 0xaa,											// hardware string
+  0x55, 0xaa,						// hardware string
   10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
-  5, 'm', 'o', 'd', 'e', 'l',							// model string
-  6, 'v', 'a', 'n', 'd', 'e', 'r',						// manufacturer name
-  8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',			// firmware string
-  4, 'n', 'a', 'm', 'e',								// name
+  5, 'm', 'o', 'd', 'e', 'l',				// model string
+  6, 'v', 'a', 'n', 'd', 'e', 'r',			// manufacturer name
+  8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',		// firmware string
+  4, 'n', 'a', 'm', 'e',				// name
 ```
 
 ## 错误码 (Key = 0x63)
