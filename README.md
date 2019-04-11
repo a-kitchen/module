@@ -114,6 +114,8 @@ uint8 dataframe [] = {
 
 例如，假设需要如下设备信息：
 
+信息段 | 内容
+-- | --
 hardware string | 0xaa55
 serial number | '1234567890'
 model string | 'model'
