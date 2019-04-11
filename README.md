@@ -215,11 +215,13 @@ device name | 'name'
 
 #define KEY_LED         0x27
 #define KEY_MODE        0x2d
-#define KEY_DATAFRAME   0x4e
-#define KEY_ERRMASK     0x62
+#define KEY_DATFRAME    0x4e
+#define KEY_DEVINFO     0x4f
 #define KEY_ERRCODE     0x63
 #define KEY_TEMP_LO     0x68
 #define KEY_TEMP_HI     0x69
+#define KEY_HDWARE_LO   0x88
+#define KEY_HDWARE_HI   0x89
 
 #define LED_BOOTING     48
 #define LED_OFF         64
@@ -233,13 +235,7 @@ static U08 cmod = AKMODE_OFF;                       // 本地模式
 static U08 dkey;                                    // 下行数据帧键
 static U08 dlen;                                    // 下行数据帧长度
 static U08 rmod = AKMODE_OFF;                       // 远程模式
-static U08 frame[] = {                              // 上行数据帧
-  'A', 'K', 0, 0,   // header
-  KEY_MODE,    0,   // 4,  5
-  KEY_ERRCODE, 0,   // 6,  7
-  KEY_TEMP_HI, 0,   // 8,  9
-  KEY_TEMP_LO, 0,   // 10, 11
-};                  // 12
+static U16 hdwr;                                    // 设备信息
 
 U08 AkFw_GetParam(U08 key) {                        // 系统编译钩子
   return key == KEY_LED ? cled : 0;
@@ -250,22 +246,55 @@ void AkFw_SetParam(U08 key, U08 value) {            // 系统编译钩子
     cled = value;
 }
 
-static void init(void) {
-  static U08 ini_frame[] = {
-    'A', 'K', 0, 0, KEY_DATAFRAME, 1,               // 下行数据帧初始化命令
-    KEY_MODE, KEY_ERRCODE,                          // 下行数据帧格式
-  };
-  if(dkey != KEY_MODE || dlen != 8) {               // 检查下行数据帧格式
-    // 初始化数据帧格式
-    U08 sum;
-    sum = 0;
-    ini_frame[2] = sizeof ini_frame;
-    ini_frame[3] = sum;
-    for(U08 i = 0; i < sizeof ini_frame; i++)
-      sum -= ini_frame[i];
-    ini_frame[3] = sum;
-    SCB_SpiUartPutArray(ini_frame, sizeof ini_frame);
+static void send(U08*, U08);
+
+static void beat(void) {
+  if(dkey != KEY_HDWARE_HI || dlen != 12) {         // 检查下行数据帧格式
+    static U08 ini[] = {
+      'A', 'K', 0, 0, KEY_DATFRAME, 1,              // 下行数据帧初始化命令
+      KEY_MODE, KEY_ERRCODE,                        // 下行数据帧格式
+      KEY_HDWARE_HI, KEY_HDWARE_LO,
+    };
+    send(ini, sizeof ini);                          // 初始化数据帧格式
+  } else if(hdwr != 0xaa55) {
+    static U08 inf[] = {
+      'A', 'K', 0, 0, KEY_DEVINFO, 1,
+      0x55, 0xaa,                               // hardware = 0xaa55
+      6, 's', 'e', 'r', 'i', 'a', 'l',          // serial
+      5, 'm', 'o', 'd', 'e', 'l',               // model
+      6, 'v', 'a', 'n', 'd', 'e', 'r',          // vander
+      8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',// firmware
+      4, 'n', 'a', 'm', 'e',                    // name
+    };
+    send(inf, sizeof inf);                          // 初始化设备信息
+  } else {
+    static U08 dat[] = {                            // 上行数据帧
+      'A', 'K', 0, 0,   // header
+      KEY_MODE,    0,   // 4,  5
+      KEY_ERRCODE, 0,   // 6,  7
+      KEY_TEMP_HI, 0,   // 8,  9
+      KEY_TEMP_LO, 0,   // 10, 11
+    };                  // 12
+    U16 tmp;
+    tmp = (Clock_millisecond / 1000) & 0x3fff;      // 模拟温度变化，0.01/s
+    dat[2] = sizeof dat;                            // 构建上行数据帧
+    dat[5] = cmod;
+    dat[7] = 0;
+    dat[9] = tmp >> 8;
+    dat[11] = tmp;
+	send(dat, sizeof dat);
   }
+}
+
+static void send(U08 *bits, U08 len) {
+  U08 sum;
+  sum = 0;
+  bits[2] = len;
+  bits[3] = sum;
+  for(U08 i = 0; i < len; i++)
+    sum -= bits[i];
+  bits[3] = sum;
+  SCB_SpiUartPutArray(bits, len);
 }
 
 static void stream(U08 value) {                     // 解析下行数据
@@ -306,25 +335,32 @@ static void stream(U08 value) {                     // 解析下行数据
     if(n){                                          // 未到达帧尾
       if(n == 3)                                    // 在确定位置
         dkey = k;                                   //   提取下行数据帧标志
-      if(k == KEY_MODE) {                           // 提取数据值
+      switch(k) {
+      case KEY_MODE:                                // 提取远程模式
         rmod = value;
         if (rmod == AKMODE_PREP)
           cmod = AKMODE_RUN;
         else if (cmod && cmod == rmod)
           cmod = 0;                                 // 本地数据一致化
+        break;
+      case KEY_HDWARE_LO:
+        hdwr = value | (hdwr & 0xff00);
+        break;
+      case KEY_HDWARE_HI:
+        hdwr = (value << 8) | (hdwr & 0x00ff);
+        break;
       }
       k = 4;
       return;
     }
   }
-  if (!(a - value))                                 // 校验和正确
-    Clock_Light(3);
+  if (!(a - value))                                 // 如果：校验和正确
+    Clock_Light(3);                                 // 亮灯，表示接收成功
   k = value == 'A' ? 1 : 0;
 }
 
 int main(void) {
-  U08 mod, sum, vled = 0, vmod = 0;
-  U16 tmpr;
+  U08 mod, vled = 0, vmod = 0;
 
   CyGlobalIntEnable;
   Log_Start("\n\n\rPanel\n\r(c) a.kitchen\n\r");
@@ -334,7 +370,6 @@ int main(void) {
   Light_Start();
 
   Clock_OnBootend();
-  init();
 
   for(;;) {
     mod = cmod ? cmod : rmod;
@@ -342,23 +377,7 @@ int main(void) {
     case EVENT_BEAT:                                // 心跳，16 次/秒
       Clock_OnBeat();
       Light_OnBeat();
-      tmpr = (Clock_millisecond / 1000) & 0x3fff;   // 模拟温度变化，0.01/s
-
-      frame[2] = sizeof frame;                      // 构建上行数据帧
-      frame[5] = cmod;
-      frame[7] = 0;
-      frame[9] = tmpr >> 8;
-      frame[11] = tmpr;
-      sum = 0;
-      frame[3] = sum;
-      for(U08 i = 0; i < sizeof frame; i++)
-        sum -= frame[i];
-      frame[3] = sum;                               // 校验和
-      SCB_SpiUartPutArray(frame, sizeof frame);     // 发送上行数据帧
-
-      break;
-    case EVENT_CLOCK:                               // 时钟，1 次/秒
-      init();                                       // 初始化数据帧格式
+      beat();
       break;
     case EVENT_IDLE:                                // 空闲
       Knob_OnIdle();
