@@ -86,13 +86,20 @@ Key2 | Val2
 
 ## 数据帧格式 (Key = 0x4e)
 
-数据帧格式是通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与常规数据帧相同，
-数据区由数据键值对 0x4e, 0x01 打头，按顺序紧跟需要的常规数据帧键。
+模块上电后，数据帧格式会是：
 
-例如，假设需要模块发出数据帧：
+  'A', 'K', 12, 0,
+  CMD_POWER_LO, 0,
+  CMD_POWER_HI, 0,
+  CMD_PERIPHERAL_LO, 0,
+  CMD_LOADTEST, 0,
+
+如果需要改变这个格式，可以通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与
+常规数据帧相同，数据区由数据键值对 0x4e, 0x01 打头，按顺序紧跟需要的常规数据帧键。
+
+例如，当想要模块发出数据帧：
 
 ```c
-uint8 dataframe [] = {
   'A', 'K', 20, 0,        // header, len = 20
   0x2d, 0,                // mode
   0x26, 0,
@@ -100,20 +107,20 @@ uint8 dataframe [] = {
   0x24, 0, 0x25, 0,       // peripheral
   0x68, 0, 0x69, 0,       // temperature
   0x88, 0, 0x89, 0,       // hardware
-};
 ```
 
 需要进行如下初始化：
 
 ```c
-  'A', 'K', <len>, <sum>, 0x4e, 0x01, 
+  'A', 'K', <len>, <sum>, 
+  0x4e, 0x01,                                       // key: frame format
   0x24, 0x26, 0x22, 0x23, 0x68, 0x69, 0x88, 0x89,   // init data frame
 ```
 
 ## 设备信息 (Key = 0x4f)
 
 设备信息是通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与常规数据帧相同，
-数据区由数据键值对 0x4f, 0x01 打头，首先是 2 字节的 hardware revision 值，之后按顺序紧跟前置长度字节的
+数据区由数据键值对 0x4f, 0x01 打头，首先是 2 字节的 hardware number 值，之后按顺序紧跟前置长度字节的
 字符串段，前置长度字节为 0 时，本信息段维持之前的值。
 
 例如，假设需要如下设备信息：
@@ -130,9 +137,8 @@ device name | 'name'
 相应的初始化数据帧为：
 
 ```c
-  'A', 'K', 
-  <len>, <sum>,
-  0x4f, 0x01,
+  'A', 'K', <len>, <sum>,
+  0x4f, 0x01,                                           // key: device information
   0x55, 0xaa,                                           // hardware number
   10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
   5, 'm', 'o', 'd', 'e', 'l',                           // model string
