@@ -42,6 +42,8 @@ Key2 | Val2
 ```c
   0x68, 0xa8, 0x69, 0x16, // temperature 58 degrees centigrade (0x16a8)
 ```
+* 0x88 - 硬件编号低字节
+* 0x89 - 硬件编号高字节
 
 ## 上行数据键
 
@@ -97,13 +99,15 @@ uint8 dataframe [] = {
   0x22, 0, 0x23, 0,       // power
   0x24, 0, 0x25, 0,       // peripheral
   0x68, 0, 0x69, 0,       // temperature
+  0x88, 0, 0x89, 0,       // hardware
 };
 ```
 
 需要进行如下初始化：
 
 ```c
-  'A', 'K', <len>, <sum>, 0x4e, 0x01, /**/0x24, 0x26, 0x22, 0x23, 0x68, 0x69, // init data frame
+  'A', 'K', <len>, <sum>, 0x4e, 0x01, 
+  0x24, 0x26, 0x22, 0x23, 0x68, 0x69, 0x88, 0x89,   // init data frame
 ```
 
 ## 设备信息 (Key = 0x4f)
@@ -116,7 +120,7 @@ uint8 dataframe [] = {
 
 信息段 | 内容
 -- | --
-hardware string | 0xaa55
+hardware number | 0xaa55
 serial number | '1234567890'
 model string | 'model'
 manufacturer name | 'vander'
@@ -126,15 +130,15 @@ device name | 'name'
 相应的初始化数据帧为：
 
 ```c
-  0x4f, 0x01,
   'A', 'K', 
   <len>, <sum>,
-  0x55, 0xaa,						// hardware string
+  0x4f, 0x01,
+  0x55, 0xaa,                                           // hardware number
   10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
-  5, 'm', 'o', 'd', 'e', 'l',				// model string
-  6, 'v', 'a', 'n', 'd', 'e', 'r',			// manufacturer name
-  8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',		// firmware string
-  4, 'n', 'a', 'm', 'e',				// name
+  5, 'm', 'o', 'd', 'e', 'l',                           // model string
+  6, 'v', 'a', 'n', 'd', 'e', 'r',                      // manufacturer name
+  8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',            // firmware string
+  4, 'n', 'a', 'm', 'e',                                // name
 ```
 
 ## 错误码 (Key = 0x63)
