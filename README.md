@@ -148,11 +148,11 @@ device name | 'name'
   6, 'v', 'a', 'n', 'd', 'e', 'r',                      // manufacturer name
   8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',            // firmware string
   4, 'n', 'a', 'm', 'e',                                // name
+  0,                                                    // levels
+  0,                                                    // service data
 ```
 
 初始化成功后，后续数据帧中的“硬件编号 (key = 0x88, 0x89)”将变为新值 (如：上例中的 0xaa55)，可据此判断初始化的成功。
-
-## 挡位信息 (Key = 0x54)
 
 ## 错误码 (Key = 0x63)
 
