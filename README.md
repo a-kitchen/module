@@ -43,14 +43,15 @@ Key2 | Val2
 ```
 * 0x88 - 硬件编号低字节
 * 0x89 - 硬件编号高字节
-* 0x8a - 标志掩码低字节
-* 0x8b - 标志掩码高字节
+* 0x8a - 标志位低字节
+* 0x8b - 标志位高字节
 
 ## 上行数据键
 
 * 0x2d - 模式
 * 0x4e - 数据帧格式
 * 0x4f - 设备信息
+* 0x54 - 挡位信息
 * 0x63 - 错误代码
 * 0x64 - 电源电压低字节，单位: 0.01 伏
 * 0x65 - 电源电压高字节，单位: 0.01 伏
@@ -70,7 +71,7 @@ Key2 | Val2
 * 0x6e - 时钟低字节
 * 0x6f - 时钟高字节
 
-## 外设控制掩码 (Key = 0x24, 0x25)
+## 外设控制位 (Key = 0x24, 0x25)
 
 * 0x0000 - 风扇停，翻炒/搅拌停
 * 0x0001 - 风扇 1
@@ -88,8 +89,8 @@ Key2 | Val2
 
 * 0 - 无模式
 * 2 - 待机，手动模式
-* 16-96 - 应用模式
-* 113-121 - 手动挡位 1-9
+* 32-63 - 应用模式
+* 65-73 - 手动挡位 1-9
 * 127 - 测试
 * 128 - 升级固件
 * 132 - 蓝牙配对模式
@@ -158,10 +159,13 @@ device name | 'name'
   'A', 'K', <len>, <sum>,
   0x4f, 0x01,                                           // key: device information
   0x55, 0xaa,                                           // hardware number
-  10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
-  5, 'm', 'o', 'd', 'e', 'l',                           // model string
+  0,
   6, 'v', 'a', 'n', 'd', 'e', 'r',                      // manufacturer name
+  5, 'm', 'o', 'd', 'e', 'l',                           // model string
+  10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
+  0,
   8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',            // firmware string
+  0,
   4, 'n', 'a', 'm', 'e',                                // name
   0,                                                    // levels
   0,                                                    // service data
@@ -177,9 +181,10 @@ device name | 'name'
 * 128-191 - 停功率
 * 192-255 - 停机
 
-## 标志掩码 (Key = 0x8a, 0x8b)
+## 标志位 (Key = 0x8a, 0x8b)
 
 * 0x8000 - 蓝牙连接
+
 
 ## 端子
 
@@ -282,10 +287,13 @@ static void beat(void) {
     static U08 inf[] = {
       'A', 'K', 0, 0, KEY_DEVINFO, 1,
       0x55, 0xaa,                               // hardware = 0xaa55
-      6, 's', 'e', 'r', 'i', 'a', 'l',          // serial
-      5, 'm', 'o', 'd', 'e', 'l',               // model
+      0,
       6, 'v', 'a', 'n', 'd', 'e', 'r',          // vander
+      5, 'm', 'o', 'd', 'e', 'l',               // model
+      6, 's', 'e', 'r', 'i', 'a', 'l',          // serial
+      0,
       8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',// firmware
+      0,
       4, 'n', 'a', 'm', 'e',                    // name
     };
     send(inf, sizeof inf);                          // 初始化设备信息
