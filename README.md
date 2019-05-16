@@ -164,7 +164,7 @@ device name | 'name'
   5, 'm', 'o', 'd', 'e', 'l',                           // model string
   10, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0',	// serial number
   0,
-  8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',            // firmware string
+  5, 'f', 'w', 'a', 'r', 'e',                           // firmware string
   0,
   4, 'n', 'a', 'm', 'e',                                // name
   0,                                                    // levels
@@ -292,7 +292,7 @@ static void beat(void) {
       5, 'm', 'o', 'd', 'e', 'l',               // model
       6, 's', 'e', 'r', 'i', 'a', 'l',          // serial
       0,
-      8, 'f', 'i', 'r', 'm', 'w', 'a', 'r', 'e',// firmware
+      5, 'f', 'w', 'a', 'r', 'e',               // firmware
       0,
       4, 'n', 'a', 'm', 'e',                    // name
     };
