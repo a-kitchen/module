@@ -12,6 +12,18 @@ Key1 | Val1
 Key2 | Val2
 ... | ...
 
+```c
+  // 缺省下行数据帧示例
+  0x41, 0x4b,   // data header 'AK'
+  0x10, 0x1f,   // length = 16, checksum = -(41+4b+10+23+27+22+10+24+26+09+89+88+65)
+  0x23, 0x27,
+  0x22, 0x10,   // power = 10000 (1000w)
+  0x24, 0,      // fan speed: 0
+  0x26, 9,      // loadtest = 9
+  0x89, 0,
+  0x88, 0x65,   // hardware_id = 101
+```
+
 上行和下行数据帧格式相同
 
 ## 下行数据键
@@ -237,8 +249,13 @@ device name | 'name'
 #include <event.h>
 #include <knob.h>
 #include <light.h>
-#include <log.h>
+#include <loud.h>
 #include <project.h>
+
+#define	LEN	0
+#define	SUM	0
+
+#define HARDWARE		201
 
 #define KEY_LED         0x27
 #define KEY_MODE        0x2d
@@ -258,17 +275,17 @@ device name | 'name'
 #define LED_WAITING     217
 
 static U08 cled = LED_OFF;                          // 本地显示
-static U08 cmod = AKMODE_OFF;                       // 本地模式
+static U08 cmod = AkMODE_OFF;                       // 本地模式
 static U08 dkey;                                    // 下行数据帧键
 static U08 dlen;                                    // 下行数据帧长度
-static U08 rmod = AKMODE_OFF;                       // 远程模式
+static U08 rmod = AkMODE_OFF;                       // 远程模式
 static U16 hdwr;                                    // 设备信息
 
-U08 AkFw_GetParam(U08 key) {                        // 系统编译钩子
+U08 Ak_GetParam08(U08 key) {                        // 系统编译钩子
   return key == KEY_LED ? cled : 0;
 }
 
-void AkFw_SetParam(U08 key, U08 value) {            // 系统编译钩子
+void Ak_SetParam08(U08 key, U08 value) {            // 系统编译钩子
   if(key == KEY_LED)
     cled = value;
 }
@@ -278,41 +295,73 @@ static void send(U08*, U08);
 static void beat(void) {
   if(dkey != KEY_HDWARE_HI || dlen != 12) {         // 检查下行数据帧格式
     static U08 ini[] = {
-      'A', 'K', 0, 0, KEY_DATFRAME, 1,              // 下行数据帧初始化命令
+      'A', 'K', LEN, SUM, KEY_DATFRAME, 1,              // 下行数据帧初始化命令
       KEY_MODE, KEY_ERRCODE,                        // 下行数据帧格式
       KEY_HDWARE_HI, KEY_HDWARE_LO,
     };
     send(ini, sizeof ini);                          // 初始化数据帧格式
-  } else if(hdwr != 0xaa55) {
+  } else if(hdwr != HARDWARE) {
+/*    static U08 inf[] = {
+      'A', 'K', LEN, SUM, 0x4f, 1,
+      0x0a, 0x00,                           // hardware = 0x000a
+      0,
+      6, 'v', 'a', 'n', 'd', 'e', 'r',      // vander
+      5, 'm', 'o', 'd', 'e', 'l',           // model
+      6, 's', 'e', 'r', 'i', 'a', 'l',      // serial
+      0,
+      4, 'f', 'i', 'r', 'm',                // firmware
+      0,
+      5, 'p', 'a', 'n', 'e', 'l',           // name
+      0, 0,                                 // levels, heating
+      18,                                   // scan response
+      0x10, 0x11,                           //   sign
+      0x00, 0x54,                           //   product id
+      0x00,                                 //   counter
+      '%', '%', '%', '%', '%', '%',         //   mac address
+      0x00,                                 //   capability
+      0x00, 0x00,                           //   wifi
+      0x00, 0x00,                           //   io capability
+      0x00, 0x00,                           //   reserved
+    };// */
     static U08 inf[] = {
-      'A', 'K', 0, 0, KEY_DEVINFO, 1,
-      0x55, 0xaa,                               // hardware = 0xaa55
+      'A', 'K', LEN, SUM, 0x4f, 1,
+      (U08)HARDWARE, (U08)(HARDWARE >> 8),  // hardware
       0,
-      6, 'v', 'a', 'n', 'd', 'e', 'r',          // vander
-      5, 'm', 'o', 'd', 'e', 'l',               // model
-      6, 's', 'e', 'r', 'i', 'a', 'l',          // serial
+      7, 'J', 'o', 'y', 'o', 'u', 'n', 'g', // vander
+      2, 'A', '8',                          // model
+      3, 's', '/', 'n',                     // serial
       0,
-      5, 'f', 'w', 'a', 'r', 'e',               // firmware
+      2, '2', '1',                          // firmware
       0,
-      4, 'n', 'a', 'm', 'e',                    // name
-    };
+      7, 'J', 'Y', '_', '4', '0', '0', '0', // name
+      0,                                    // levels
+      8, 0x80, 0x3e, 0x70, 0x17, 0x14, 0x50, 0x00, 0x00,
+                                            // heating: 16000, 6000, 20500
+      18,                                   // scan response
+      0x10, 0x11,                           //   sign
+      0x00, 0x54,                           //   product id
+      0x00,                                 //   counter
+      '%', '%', '%', '%', '%', '%',         //   mac address
+      0x00,                                 //   capability
+      0x00, 0x00,                           //   wifi
+      0x00, 0x00,                           //   io capability
+      0x00, 0x00,                           //   reserved
+    };// */
     send(inf, sizeof inf);                          // 初始化设备信息
   } else {
     static U08 dat[] = {                            // 上行数据帧
-      'A', 'K', 0, 0,   // header
-      KEY_MODE,    0,   // 4,  5
-      KEY_ERRCODE, 0,   // 6,  7
-      KEY_TEMP_HI, 0,   // 8,  9
-      KEY_TEMP_LO, 0,   // 10, 11
-    };                  // 12
-    U16 tmp;
-    tmp = (Clock_millisecond / 1000) & 0x3fff;      // 模拟温度变化，0.01/s
-    dat[2] = sizeof dat;                            // 构建上行数据帧
-    dat[5] = cmod;
+      'A', 'K', LEN, SUM,                   // header
+      KEY_MODE,    0,                       // 4,  5
+      KEY_ERRCODE, 0,                       // 6,  7
+      KEY_TEMP_HI, 0,                       // 8,  9
+      KEY_TEMP_LO, 0,                       // 10, 11
+    };                                      // 12
+    U16 tmp = (Clock_millisecond / 1000) & 0x3fff;  // 模拟温度变化，0.01/s
+    dat[5] = cmod;                                  // 构建上行数据帧
     dat[7] = 0;
     dat[9] = tmp >> 8;
     dat[11] = tmp;
-	send(dat, sizeof dat);
+    send(dat, sizeof dat);
   }
 }
 
@@ -343,7 +392,7 @@ static void stream(U08 value) {                     // 解析下行数据
     else k = value == 'A'? 1 : 0;
     return;
   case 2:
-    if((value & 1) || (value < 4))
+    if(value < 4)
       k = value == 'A'? 1 : 0;
     else {
       a = 'A' + 'K' + value;
@@ -368,9 +417,11 @@ static void stream(U08 value) {                     // 解析下行数据
       switch(k) {
       case KEY_MODE:                                // 提取远程模式
         rmod = value;
-        if (rmod == AKMODE_PREP)
-          cmod = AKMODE_RUN;
-        else if (cmod && cmod == rmod)
+        //if (cmod == AkMODE_PREP && rmod == AkMODE_PREP)
+        if (rmod == AkMODE_PREP)
+          cmod = AkMODE_RUN;
+        else if (cmod && (cmod == rmod || (cmod == AkMODE_RETURN && rmod >= AkMODE_APPMIN) ||
+            (rmod > AkMODE_RUN && rmod < AkMODE_BOOTING)))
           cmod = 0;                                 // 本地数据一致化
         break;
       case KEY_HDWARE_LO:
@@ -414,39 +465,43 @@ int main(void) {
       break;
     case EVENT_LPRESS:                              // 长按
       if(Knob_key == KNOB_POWER)                    // 电源键开关机
-        cmod = mod == AKMODE_OFF ? AKMODE_L_0 : AKMODE_OFF;
+        cmod = mod == AkMODE_OFF ? AkMODE_L_0 : AkMODE_OFF;
       break;
     case EVENT_RELEASE:                             // 释放开关
-      if(mod == AKMODE_OFF)
+      if(mod == AkMODE_OFF)
         break;
 	  switch(Knob_key) {
       case KNOB_MINUS:                              // 左转按钮
-        if (mod > AKMODE_L_1)
+        if (mod > AkMODE_L_1)
           cmod = mod - 1;
-        else if (mod == AKMODE_L_1 || mod == AKMODE_PAIRING)
-          cmod = AKMODE_L_0;
+        else if (mod == AkMODE_L_1 || mod == AkMODE_PAIRING)
+          cmod = AkMODE_L_0;
         break;
       case KNOB_PLUS:                               // 右转按钮
-        if (mod == AKMODE_L_0 || mod == AKMODE_PAIRING)
-          cmod = AKMODE_L_1;
-        else if (mod < AKMODE_L_9)
+        if (mod == AkMODE_L_0 || mod == AkMODE_PAIRING)
+          cmod = AkMODE_L_1;
+        else if (mod < AkMODE_L_9)
           cmod = mod + 1;
         break;
       case KNOB_POWER:                              // 电源键
-        if (mod == AKMODE_L_0 || mod == AKMODE_PAIRING)
-          cmod = AKMODE_L_5;
-        else if (mod >= AKMODE_L_1 || mod <= AKMODE_L_9)
-          cmod = AKMODE_L_0;
-        else if (mod == AKMODE_WAITNEXT || mod == AKMODE_PAUSE)
-          cmod = AKMODE_PREP;                       // 下一步
-        else if (mod > AKMODE_PREP && mod != AKMODE_OFF)
-          cmod = AKMODE_PAUSE;                      // 暂停
+        if (mod <= AkMODE_READYMAX || mod == AkMODE_PAIRING)
+          cmod = AkMODE_L_5;
+        else if (mod < AkMODE_APPMIN)
+          cmod = AkMODE_RETURN;                     // 恢复
+        else if (mod <= AkMODE_APPMAX)
+          cmod = AkMODE_READYMAX + 1;               // 暂停
+        else if (mod >= AkMODE_L_1 || mod <= AkMODE_L_9)
+          cmod = AkMODE_L_0;
+        else if (mod == AkMODE_WAITNEXT || mod == AkMODE_PAUSE)
+          cmod = AkMODE_PREP;                       // 下一步
+        else if (mod > AkMODE_PREP && mod != AkMODE_OFF)
+          cmod = AkMODE_PAUSE;                      // 暂停
         break;
       }
       break;
     case EVENT_XPRESS:                              // 超长按
       if(Knob_key == KNOB_POWER)                    //   电源键配对
-        cmod = AKMODE_PAIRING;
+        cmod = AkMODE_PAIRING;
       break;
     }
 	if(cmod)
@@ -455,25 +510,28 @@ int main(void) {
       vmod = mod;
       // 设置指示灯
       switch (mod) {
-      case AKMODE_BOOTING:
+      case AkMODE_BOOTING:
         cled = LED_BOOTING;
         break;
-      case AKMODE_L_0:
-        cled = LED_ON;
-        break;
-      case AKMODE_OFF:
-      case AKMODE_PREP:
+      case AkMODE_OFF:
+      case AkMODE_PREP:
         cled = LED_OFF;
         break;
-      case AKMODE_PAIRING:
+      case AkMODE_PAIRING:
         cled = LED_PAIRING;
         break;
-      case AKMODE_PAUSE:
-      case AKMODE_WAITNEXT:
+      case AkMODE_PAUSE:
+      case AkMODE_WAITNEXT:
         cled = LED_WAITING;
         break;
       default:
-        cled = vmod > AKMODE_L_9 ? LED_RUNING : LED_ON - AKMODE_L_1 + 1 + mod;
+        if (vmod >= AkMODE_L_1 && vmod <= AkMODE_L_9)
+          cled = LED_ON - AkMODE_L_1 + 1 + mod;
+        else if (vmod <= AkMODE_READYMAX)
+          cled = LED_ON;
+        else if (vmod < AkMODE_APPMIN)
+          cled = LED_WAITING;
+        else cled = LED_RUNING;
       }
     }
     if(vled != cled) {
