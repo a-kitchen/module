@@ -1,5 +1,15 @@
 # 模块
 
+## 应用示例
+
+集成控制
+
+![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/integrated.png)
+
+数据透传
+
+![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
+
 ## 数据帧
 
 * 帧长度 - 4 ~ 128 字节
