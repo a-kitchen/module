@@ -128,11 +128,13 @@ Key2 | Val2
 模块上电后，数据帧格式会是：
 
 ```c
-  'A', 'K', 12, 0,
-  CMD_POWER_LO, 0,
-  CMD_POWER_HI, 0,
-  CMD_PERIPHERAL_LO, 0,
-  CMD_LOADTEST, 0,
+  'A', 'K', 16, sum,
+  0x23, power_hi,
+  0x22, power_lo,
+  0x24, fan_speed,
+  0x26, loadtest,
+  0x89, hardware_id_hi,
+  0x88, hardware_id_lo,
 ```
 
 如果需要改变这个格式，可以通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与常规数据帧相同，数据区由数据键值对 0x4e, 0x01 打头，按顺序紧跟需要的常规数据帧键。
@@ -140,7 +142,7 @@ Key2 | Val2
 例如，当想要模块发出数据帧：
 
 ```c
-  'A', 'K', 20, 0,        // header, len = 20
+  'A', 'K', len, sum,     // header
   0x2d, 0,                // mode
   0x26, 0,                // load
   0x22, 0, 0x23, 0,       // power
@@ -153,9 +155,9 @@ Key2 | Val2
 需要进行如下初始化：
 
 ```c
-  'A', 'K', <len>, <sum>, 
-  0x4e, 0x01,                                           // key: frame format
-  0x24, 0x26, 0x22, 0x23, 0x68, 0x69, 0x88, 0x89, 0x30, // init data frame
+  'A', 'K', len, sum, 
+  0x4e, 0x01,                                                       // key: frame format
+  0x24, 0x26, 0x22, 0x23, 0x24, 0x25, 0x68, 0x69, 0x88, 0x89, 0x30, // init data frame
 ```
 
 具体在这个例子中，数据帧格式初始化成功与否，可以通过后续数据帧长度的变化判断。
