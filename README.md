@@ -102,6 +102,18 @@ Key2 | Val2
 
 ## 电机控制 (Key = 0x25)
 
+* 0x00 - 电机停
+* 0x01 - level 1
+* 0x02 - level 2
+* 0x03 - level 3
+* 0x04 - level 4
+* 0x05 - level 5
+* 0x06 - level 6
+* 0x07 - level 7
+* 0x08 - level 8
+* 0x09 - level 9
+* 0x0a - level 10
+
 ## 模式 (Key = 0x2d)
 
 * 0 - 无模式
