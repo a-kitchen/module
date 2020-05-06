@@ -1,19 +1,19 @@
-# Module
+# 模块
 
-## Example
+## 应用示例
 
-Integrated control
+集成控制
 
-![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/integrated.png)
+![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/integrated.png)
 
-Pass through
+数据透传
 
-![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
+![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
 
-## Data frame
+## 数据帧
 
-* Frame length - 4 ~ 128 byte
-* Frame format - header ( ASCII of 'AK' 0x41 + 0x4B ) 、leading section ( len: length of this frame + sum: checksum, 校验和是本帧所有其他数据字节和的补码checksum is complement code of  all bytes'   )、data section ( key + val )
+* 帧长度 - 4 ~ 128 字节
+* 每帧数据的格式 - 固定的起始头 ( AK 的 ASCII 码 0x41 + 0x4B ) 、引导区 ( len 本帧数据长度 + sum 校验和，校验和是本帧所有其他数据字节和的补码 )、数据区 ( 每个数据包含键值数据对 key + val )
 
 ‘A’ | ‘K’
 -- | --
@@ -23,7 +23,7 @@ Key2 | Val2
 ... | ...
 
 ```c
-  // default downstream data frame 
+  // 缺省下行数据帧示例
   0x41, 0x4b,   // data header 'AK'
   0x10, 0x1f,   // length = 16, checksum = -(41+4b+10+23+27+22+10+24+26+09+89+88+65)
   0x23, 0x27,
@@ -34,101 +34,105 @@ Key2 | Val2
   0x88, 0x65,   // hardware_id = 101
 ```
 
-Upstream data has the same format as downstream data.
+上行和下行数据帧格式相同
 
-## Key of downstream data
+## 下行数据键
 
-* 0x22 - lower byte of power, unit: 0.1 W
-* 0x23 - higher byte of power, unit: 0.1 W
+* 0x22 - 功率低字节，单位: 0.1 瓦
+* 0x23 - 功率高字节，单位: 0.1 瓦
 ```c
   0x22, 0x10, 0x23, 0x27, // power 1000w (0x2710)
 ```
-* 0x24 - peripheral control
-* 0x25 - motor control
+* 0x24 - 外设控制
+* 0x25 - 电机控制
 ```c
   0x24, 3, 0x25, 0,       // fan speed 3
 ```
-* 0x28 - lower byte of timer, unit: second
-* 0x29 - higher byte of timer, unit: second
+* 0x28 - 定时器低字节，单位: 秒
+* 0x29 - 定时器高字节，单位: 秒
 ```c
   0x28, 0xa8, 0x29, 0x16, // timer 5800 sec (0x16a8)
 ```
-* 0x2d - mode
-* 0x30 - error code mask, last for 4 second, repeat if need longer than 4 second
+* 0x2d - 模式
+* 0x30 - 屏蔽错误码，时间 4 秒，如果要连续屏蔽，则重复发送
 ```c
   0x30, 0x80, // errcode 0x80 blocked for 4 sec.
 ```
-* 0x68 - lower byte of container's temperature, unit: 0.01 ℃
-* 0x69 - higher byte of container's temperature, unit: 0.01 ℃
+* 0x68 - 锅底温度低字节，单位: 0.01 摄氏度
+* 0x69 - 锅底温度高字节，单位: 0.01 摄氏度
 ```c
   0x68, 0xa8, 0x69, 0x16, // temperature 58 degrees centigrade (0x16a8)
 ```
-* 0x88 - lower byte of hardware number
-* 0x89 - higher byte of hardware number
-* 0x8a - lower byte of flags
-* 0x8b - higher byte of flags
+* 0x88 - 硬件编号低字节
+* 0x89 - 硬件编号高字节
+* 0x8a - 标志位低字节
+* 0x8b - 标志位高字节
 
-## Key of upstream data
+## 上行数据键
 
-* 0x2d - mode
-* 0x4e - format of data frame
-* 0x4f - device information
-* 0x54 - level information
-* 0x63 - error code
-* 0x64 - lower byte of power voltage, unit: 0.01 V
-* 0x65 - higher byte of power voltage, unit: 0.01 V
+* 0x2d - 模式
+* 0x4e - 数据帧格式
+* 0x4f - 设备信息
+* 0x54 - 挡位信息
+* 0x63 - 错误代码
+* 0x64 - 电源电压低字节，单位: 0.01 伏
+* 0x65 - 电源电压高字节，单位: 0.01 伏
  ```c
   0x64, 0xf0, 0x65, 0x55, // voltage 220v (0x55f0)
 ```
-* 0x66 - lower byte of current, unit: mA
-* 0x67 - higher byte of current, unit: mA
+* 0x66 - 电源电流低字节，单位: 毫安
+* 0x67 - 电源电流高字节，单位: 毫安
 ```c
   0x66, 0x10, 0x67, 0x27, // current 10a (0x2710)
 ```
-* 0x68 - lower byte of container's temperature, unit: 0.01 ℃
-* 0x69 - higher byte of container's temperature, unit: 0.01 ℃
-* 0x6a - load test/load type
-* 0x6c - lower byte of sink's temperature, unit: 0.01 ℃
-* 0x6d - higher byte of sink's temperature, unit: 0.01 ℃
-* 0x6e - lower byte of clock
-* 0x6f - higher byte of clock
+* 0x68 - 锅底温度低字节，单位: 0.01 摄氏度
+* 0x69 - 锅底温度高字节，单位: 0.01 摄氏度
+* 0x6a - 负载测试/负载类型
+* 0x6c - 散热器温度低字节，单位: 0.01 摄氏度
+* 0x6d - 散热器温度高字节，单位: 0.01 摄氏度
+* 0x6e - 时钟低字节
+* 0x6f - 时钟高字节
 
-## Peripheral control (Key = 0x24)
+## 外设控制位 (Key = 0x24)
 
-* 0x0000 - fan stops
-* 0x0001 - fan level 1
-* 0x0002 - fan level 2
-* 0x0003 - fan level 3
+* 0x0000 - 风扇停，翻炒/搅拌停
+* 0x0001 - 风扇 1
+* 0x0002 - 风扇 2
+* 0x0003 - 风扇 3
 
-## Motor control (Key = 0x25)
+## 电机控制 (Key = 0x25)
 
-* 0x00 - motor stops
-* 0x01 - motor level 1
-* 0x02 - motor level 2
-* 0x03 - motor level 3
-* 0x04 - motor level 4
-* 0x05 - motor level 5
-* 0x06 - motor level 6
-* 0x07 - motor level 7
-* 0x08 - motor level 8
-* 0x09 - motor level 9
-* 0x0a - motor level 10
+* 0x00 - 电机停
+* 0x01 - level 1
+* 0x02 - level 2
+* 0x03 - level 3
+* 0x04 - level 4
+* 0x05 - level 5
+* 0x06 - level 6
+* 0x07 - level 7
+* 0x08 - level 8
+* 0x09 - level 9
+* 0x0a - level 10
 
-## Mode (Key = 0x2d)
+## 模式 (Key = 0x2d)
 
-* 0 - none
-* 1-15 - preset program
-* 65-73 - manual  1-9
-* 128 - OTA
-* 132 - bluetooth pairing
-* 192-210 - program running. 197 - pause; 201 - wait next. Resume - 193, then 192.
-* 254 - power off
+* 0 - 无模式
+* 2 - 待机，手动模式
+* 32-63 - 应用模式
+* 65-73 - 手动挡位 1-9
+* 127 - 测试
+* 128 - 升级固件
+* 132 - 蓝牙配对模式
+* 192-210 - 菜谱模式。其中：197 - 暂停；201 - 等待确认。重新设置模式为 193，然后 192 恢复或确认
+* 254 - 关机
 
-![mode](https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
+![模式](https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
 
-## Format of data frame (Key = 0x4e)
+正常情况下，上电会将模式初始化成 254 关机。但全新模块没有经过温度校准，模式将会初始化成 132 蓝牙配对。
 
-The format of data initially is:
+## 数据帧格式 (Key = 0x4e)
+
+模块上电后，数据帧格式会是：
 
 ```c
   'A', 'K', 16, sum,
@@ -139,9 +143,10 @@ The format of data initially is:
   0x89, hardware_id_hi,
   0x88, hardware_id_lo,
 ```
-You can change the format by sending a data frame which includes a special data section. The frame starts with header 'AK' and leading section len + sum, data section starts with 0x4e, 0x01, followed by data keys.
 
-For example:
+如果需要改变这个格式，可以通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与常规数据帧相同，数据区由数据键值对 0x4e, 0x01 打头，按顺序紧跟需要的常规数据帧键。
+
+例如，当想要模块发出数据帧：
 
 ```c
   'A', 'K', len, sum,     // header
@@ -153,19 +158,22 @@ For example:
   0x88, 0, 0x89, 0,       // hardware
   0x30, 0,                // block error
 ```
-It needs to be initiated by :
+
+需要进行如下初始化：
 
 ```c
   'A', 'K', len, sum, 
   0x4e, 0x01,                                                       // key: frame format
-  0x2d, 0x26, 0x22, 0x23, 0x24, 0x25, 0x68, 0x69, 0x88, 0x89, 0x30, // init data frame
+  0x24, 0x26, 0x22, 0x23, 0x24, 0x25, 0x68, 0x69, 0x88, 0x89, 0x30, // init data frame
 ```
 
-## Device information (Key = 0x4f)
+具体在这个例子中，数据帧格式初始化成功与否，可以通过后续数据帧长度的变化判断。
 
-Device information is set by sending a data frame which includes a special data section. The frame starts with header 'AK' and leading section len + sum, data section starts with 0x4f, 0x01，then will have 2 byte of hardware number，之后按顺序紧跟前置长度字节的字符串段，前置长度字节为 0 时，本信息段维持之前的值。
+## 设备信息 (Key = 0x4f)
 
-For example, if you want device information as below：
+设备信息是通过发送一个包含特殊数据区的数据帧实现，其中起始头 'AK' 和引导区 len + sum 与常规数据帧相同，数据区由数据键值对 0x4f, 0x01 打头，首先是 2 字节的 hardware number 值，之后按顺序紧跟前置长度字节的字符串段，前置长度字节为 0 时，本信息段维持之前的值。
+
+例如，假设需要如下设备信息：
 
 信息段 | 内容
 -- | --
@@ -176,7 +184,7 @@ manufacturer name | 'vander'
 firmware string | 'firmware'
 device name | 'name'
 
-Initialization data frame should be:
+相应的初始化数据帧为：
 
 ```c
   'A', 'K', <len>, <sum>,
@@ -194,9 +202,9 @@ Initialization data frame should be:
   0,                                                    // service data
 ```
 
-If initialized successfully，"hardware number (key = 0x88, 0x89)" should turn to 0xaa55 which is the value in the example.
+初始化成功后，后续数据帧中的“硬件编号 (key = 0x88, 0x89)”将变为新值 (如：上例中的 0xaa55)，可据此判断初始化的成功。
 
-## Error code (Key = 0x63)
+## 错误码 (Key = 0x63)
 
 * 0-63 - 无动作
 * 64-127 - 仅显示
@@ -204,7 +212,7 @@ If initialized successfully，"hardware number (key = 0x88, 0x89)" should turn t
 * 128-191 - 停功率
 * 192-255 - 停机
 
-## Flags (Key = 0x8a, 0x8b)
+## 标志位 (Key = 0x8a, 0x8b)
 
 * 0x8000 - 蓝牙连接
 
@@ -253,7 +261,7 @@ If initialized successfully，"hardware number (key = 0x88, 0x89)" should turn t
 
 ![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/layout.png)
 
-## Code example
+## 代码例子
 
 ```c
 #include <clock.h>
