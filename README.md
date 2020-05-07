@@ -122,7 +122,9 @@ Upstream data has the same format as downstream data.
 
 * 0 - none
 * 1-15 - preset program
-* 65-73 - manual  1-9
+* 17-31 - reserve
+* 33-47 - timing
+* 49-63 - ready
 * 128 - OTA
 * 132 - bluetooth pairing
 * 192-210 - program running. 197 - pause; 201 - wait next. Resume - 193, then 192.
