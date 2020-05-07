@@ -10,9 +10,14 @@ Pass through
 
 ![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
 
+## Data port
+
+* UART - baud rate 9600
+
 ## Data frame
 
 * Frame length - 4 ~ 128 byte
+* Frame speed - 8 ~ 24 frame/sec
 * Frame format - header ( ASCII of 'AK' 0x41 + 0x4B ) 、leading section ( len: length of this frame + sum: checksum, checksum is complement code of all bytes)、data section ( key + val )
 
 ‘A’ | ‘K’
