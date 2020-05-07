@@ -128,7 +128,7 @@ Upstream data has the same format as downstream data.
 * 192-210 - program running. 197 - pause; 201 - wait next. Resume - 193, then 192.
 * 254 - power off
 
-![mode](https://raw.githubusercontent.com/a-kitchen/module/master/modes.png)
+![mode](https://raw.githubusercontent.com/a-kitchen/module/master/modes-EN.png)
 
 ## Format of data frame (Key = 0x4e)
 
