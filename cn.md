@@ -10,9 +10,14 @@
 
 ![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
 
+## 通信端口
+
+* UART - 波特率 9600 
+
 ## 数据帧
 
 * 帧长度 - 4 ~ 128 字节
+* 帧速率 - 8 ~ 24 帧/秒
 * 每帧数据的格式 - 固定的起始头 ( AK 的 ASCII 码 0x41 + 0x4B ) 、引导区 ( len 本帧数据长度 + sum 校验和，校验和是本帧所有其他数据字节和的补码 )、数据区 ( 每个数据包含键值数据对 key + val )
 
 ‘A’ | ‘K’
