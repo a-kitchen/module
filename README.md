@@ -8,7 +8,7 @@ Integrated control
 
 Passthrough
 
-![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
+![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough-new.png)
 
 ## Data port
 
