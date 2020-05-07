@@ -13,7 +13,7 @@ Pass through
 ## Data frame
 
 * Frame length - 4 ~ 128 byte
-* Frame format - header ( ASCII of 'AK' 0x41 + 0x4B ) 、leading section ( len: length of this frame + sum: checksum, 校验和是本帧所有其他数据字节和的补码checksum is complement code of  all bytes'   )、data section ( key + val )
+* Frame format - header ( ASCII of 'AK' 0x41 + 0x4B ) 、leading section ( len: length of this frame + sum: checksum, checksum is complement code of all bytes)、data section ( key + val )
 
 ‘A’ | ‘K’
 -- | --
@@ -33,7 +33,6 @@ Key2 | Val2
   0x89, 0,
   0x88, 0x65,   // hardware_id = 101
 ```
-
 Upstream data has the same format as downstream data.
 
 ## Key of downstream data
@@ -139,6 +138,7 @@ The format of data initially is:
   0x89, hardware_id_hi,
   0x88, hardware_id_lo,
 ```
+
 You can change the format by sending a data frame which includes a special data section. The frame starts with header 'AK' and leading section len + sum, data section starts with 0x4e, 0x01, followed by data keys.
 
 For example:
@@ -153,6 +153,7 @@ For example:
   0x88, 0, 0x89, 0,       // hardware
   0x30, 0,                // block error
 ```
+
 It needs to be initiated by :
 
 ```c
@@ -163,11 +164,11 @@ It needs to be initiated by :
 
 ## Device information (Key = 0x4f)
 
-Device information is set by sending a data frame which includes a special data section. The frame starts with header 'AK' and leading section len + sum, data section starts with 0x4f, 0x01，then will have 2 byte of hardware number，之后按顺序紧跟前置长度字节的字符串段，前置长度字节为 0 时，本信息段维持之前的值。
+Device information is set by sending a data frame which includes a special data section. The frame starts with header 'AK' and leading section len + sum, data section starts with 0x4f, 0x01, then follow 2 byte of hardware number, then one leading byte ( length ), followed by length bytes of character data.
 
 For example, if you want device information as below：
 
-信息段 | 内容
+info | value
 -- | --
 hardware number | 0xaa55
 serial number | '1234567890'
@@ -194,64 +195,64 @@ Initialization data frame should be:
   0,                                                    // service data
 ```
 
-If initialized successfully，"hardware number (key = 0x88, 0x89)" should turn to 0xaa55 which is the value in the example.
+In the example if initialized successfully，"hardware number (key = 0x88, 0x89)" should turn to 0xaa55.
 
 ## Error code (Key = 0x63)
 
-* 0-63 - 无动作
-* 64-127 - 仅显示
-* 112-144 - 可屏蔽
-* 128-191 - 停功率
-* 192-255 - 停机
+* 0-63 - no action
+* 64-127 - display only
+* 112-144 - maskable
+* 128-191 - pause
+* 192-255 - stop
 
 ## Flags (Key = 0x8a, 0x8b)
 
-* 0x8000 - 蓝牙连接
+* 0x8000 - bluetooth control
 
 
-## 端子
+## Pin
 
-1. CAP1 - 触摸1
-1. CAP2 - 触摸2
-1. CAP3 - 触摸3
-1. CAP4 - 触摸4
-1. CAP5 - 触摸5
-1. CAP6 - 触摸6
-1. CAP7 - 触摸7
-1. CAP8 - 触摸8
+1. CAP1 - touch 1
+1. CAP2 - touch 2
+1. CAP3 - touch 3
+1. CAP4 - touch 4
+1. CAP5 - touch 5
+1. CAP6 - touch 6
+1. CAP7 - touch 7
+1. CAP8 - touch 8
 1. RES1
-1. SWA - 开关A
-1. SWB - 开关B
-1. SW2 - 开关2
+1. SWA - switch A
+1. SWB - switch B
+1. SW2 - switch 2
 1. RES2
 1. RES3
 1. RES4
 1. RES5
-1. \__VAA - 模拟电源
-1. \__GNDA - 模拟地
-1. \__NTC - 测温热敏电阻
-1. \__GNDD - 数字地
-1. \__VDD - 数字电源
-1. \__RX - 串口接收
-1. \__TX - 串口发送
+1. \__VAA - analog power
+1. \__GNDA - analog ground
+1. \__NTC - NTC
+1. \__GNDD - digital ground
+1. \__VDD - digital power
+1. \__RX - UART RX
+1. \__TX - UART TX
 1. INT
 1. SCL
 1. SDA
-1. COM - 显示背景亮度
-1. LED1 - 显示1
-1. LED2 - 显示2
-1. LED3 - 显示3
-1. LED4 - 显示4
-1. LED5 - 显示5
-1. LED6 - 显示6
-1. LED7 - 显示7
-1. LED8 - 显示8
-1. LED9 - 显示9
-1. LED10 - 显示10
-1. LED11 - 显示11
-1. CAPC - 触摸公共端
+1. COM - display background
+1. LED1 - display 1
+1. LED2 - display 2
+1. LED3 - display 3
+1. LED4 - display 4
+1. LED5 - display 5
+1. LED6 - display 6
+1. LED7 - display 7
+1. LED8 - display 8
+1. LED9 - display 9
+1. LED10 - display 10
+1. LED11 - display 11
+1. CAPC - touch common
 
-![针脚](https://raw.githubusercontent.com/a-kitchen/module/master/layout.png)
+![views](https://raw.githubusercontent.com/a-kitchen/module/master/layout.png)
 
 ## Code example
 
@@ -285,18 +286,18 @@ If initialized successfully，"hardware number (key = 0x88, 0x89)" should turn t
 #define LED_RUNING      226
 #define LED_WAITING     217
 
-static U08 cled = LED_OFF;                          // 本地显示
-static U08 cmod = AkMODE_OFF;                       // 本地模式
-static U08 dkey;                                    // 下行数据帧键
-static U08 dlen;                                    // 下行数据帧长度
-static U08 rmod = AkMODE_OFF;                       // 远程模式
-static U16 hdwr;                                    // 设备信息
+static U08 cled = LED_OFF;                          // local display
+static U08 cmod = AkMODE_OFF;                       // local mode
+static U08 dkey;                                    // downstream data key
+static U08 dlen;                                    // downstream data length
+static U08 rmod = AkMODE_OFF;                       // remote mode
+static U16 hdwr;                                    // device information
 
-U08 Ak_GetParam08(U08 key) {                        // 系统编译钩子
+U08 Ak_GetParam08(U08 key) {                        // hook for compiling
   return key == KEY_LED ? cled : 0;
 }
 
-void Ak_SetParam08(U08 key, U08 value) {            // 系统编译钩子
+void Ak_SetParam08(U08 key, U08 value) {            // hook for compiling
   if(key == KEY_LED)
     cled = value;
 }
@@ -304,13 +305,13 @@ void Ak_SetParam08(U08 key, U08 value) {            // 系统编译钩子
 static void send(U08*, U08);
 
 static void beat(void) {
-  if(dkey != KEY_HDWARE_HI || dlen != 12) {         // 检查下行数据帧格式
+  if(dkey != KEY_HDWARE_HI || dlen != 12) {         // check format of downstream data
     static U08 ini[] = {
-      'A', 'K', LEN, SUM, KEY_DATFRAME, 1,              // 下行数据帧初始化命令
-      KEY_MODE, KEY_ERRCODE,                        // 下行数据帧格式
+      'A', 'K', LEN, SUM, KEY_DATFRAME, 1,              // downstream data initialization
+      KEY_MODE, KEY_ERRCODE,                        // downstream data format
       KEY_HDWARE_HI, KEY_HDWARE_LO,
     };
-    send(ini, sizeof ini);                          // 初始化数据帧格式
+    send(ini, sizeof ini);                          // initialization data format
   } else if(hdwr != HARDWARE) {
 /*    static U08 inf[] = {
       'A', 'K', LEN, SUM, 0x4f, 1,
@@ -358,17 +359,17 @@ static void beat(void) {
       0x00, 0x00,                           //   io capability
       0x00, 0x00,                           //   reserved
     };// */
-    send(inf, sizeof inf);                          // 初始化设备信息
+    send(inf, sizeof inf);                          // initialize device information
   } else {
-    static U08 dat[] = {                            // 上行数据帧
+    static U08 dat[] = {                            // upstream data frame
       'A', 'K', LEN, SUM,                   // header
       KEY_MODE,    0,                       // 4,  5
       KEY_ERRCODE, 0,                       // 6,  7
       KEY_TEMP_HI, 0,                       // 8,  9
       KEY_TEMP_LO, 0,                       // 10, 11
     };                                      // 12
-    U16 tmp = (Clock_millisecond / 1000) & 0x3fff;  // 模拟温度变化，0.01/s
-    dat[5] = cmod;                                  // 构建上行数据帧
+    U16 tmp = (Clock_millisecond / 1000) & 0x3fff;  // simulate temperature，0.01/s
+    dat[5] = cmod;                                  // set value
     dat[7] = 0;
     dat[9] = tmp >> 8;
     dat[11] = tmp;
@@ -387,17 +388,17 @@ static void send(U08 *bits, U08 len) {
   SCB_SpiUartPutArray(bits, len);
 }
 
-static void stream(U08 value) {                     // 解析下行数据
+static void stream(U08 value) {                     // parse downstream data
   static U08 a, k, n;
 
   a += value;
   n--;
   switch (k) {
-  case 0:                                           // 检查帧头
+  case 0:                                           // check header
     if (value == 'A')
       k = 1;
     return;
-  case 1:                                           // 检查帧头
+  case 1:                                           // check header
     if(value == 'K')
       k = 2;
     else k = value == 'A'? 1 : 0;
@@ -408,32 +409,32 @@ static void stream(U08 value) {                     // 解析下行数据
     else {
       a = 'A' + 'K' + value;
       k = 3;
-      n = value - 2;                                // 提取帧长度
+      n = value - 2;                                // frame length
       dlen = value;
     }
     return;
-  case 3:                                           // 越过校验和
+  case 3:                                          
     k = 4;
     return;
   case 4:
     if(n){
-      k = value;                                    // 提取数据键
+      k = value;                                    // key
       return;
     }
     break;
   default:
-    if(n){                                          // 未到达帧尾
-      if(n == 3)                                    // 在确定位置
-        dkey = k;                                   //   提取下行数据帧标志
+    if(n){                                          // not end of frame
+      if(n == 3)                                    
+        dkey = k;                                   //   flags of downstream data frame
       switch(k) {
-      case KEY_MODE:                                // 提取远程模式
+      case KEY_MODE:                                // remote mode
         rmod = value;
         //if (cmod == AkMODE_PREP && rmod == AkMODE_PREP)
         if (rmod == AkMODE_PREP)
           cmod = AkMODE_RUN;
         else if (cmod && (cmod == rmod || (cmod == AkMODE_RETURN && rmod >= AkMODE_APPMIN) ||
             (rmod > AkMODE_RUN && rmod < AkMODE_BOOTING)))
-          cmod = 0;                                 // 本地数据一致化
+          cmod = 0;                                 // sync to local data
         break;
       case KEY_HDWARE_LO:
         hdwr = value | (hdwr & 0xff00);
@@ -446,8 +447,8 @@ static void stream(U08 value) {                     // 解析下行数据
       return;
     }
   }
-  if (!(a - value))                                 // 如果：校验和正确
-    Clock_Light(3);                                 // 亮灯，表示接收成功
+  if (!(a - value))                                 // if: checksum passed
+    Clock_Light(3);                                 // LED on indicates success
   k = value == 'A' ? 1 : 0;
 }
 
@@ -466,52 +467,52 @@ int main(void) {
   for(;;) {
     mod = cmod ? cmod : rmod;
     switch(Event_Get()){
-    case EVENT_BEAT:                                // 心跳，16 次/秒
+    case EVENT_BEAT:                                // beat, 16 times/sec
       Clock_OnBeat();
       Light_OnBeat();
       beat();
       break;
-    case EVENT_IDLE:                                // 空闲
+    case EVENT_IDLE:                                // idle
       Knob_OnIdle();
       break;
-    case EVENT_LPRESS:                              // 长按
-      if(Knob_key == KNOB_POWER)                    // 电源键开关机
+    case EVENT_LPRESS:                              // long press
+      if(Knob_key == KNOB_POWER)                    // power button
         cmod = mod == AkMODE_OFF ? AkMODE_L_0 : AkMODE_OFF;
       break;
-    case EVENT_RELEASE:                             // 释放开关
+    case EVENT_RELEASE:                             // release button
       if(mod == AkMODE_OFF)
         break;
 	  switch(Knob_key) {
-      case KNOB_MINUS:                              // 左转按钮
+      case KNOB_MINUS:                              // turn left
         if (mod > AkMODE_L_1)
           cmod = mod - 1;
         else if (mod == AkMODE_L_1 || mod == AkMODE_PAIRING)
           cmod = AkMODE_L_0;
         break;
-      case KNOB_PLUS:                               // 右转按钮
+      case KNOB_PLUS:                               // turn right
         if (mod == AkMODE_L_0 || mod == AkMODE_PAIRING)
           cmod = AkMODE_L_1;
         else if (mod < AkMODE_L_9)
           cmod = mod + 1;
         break;
-      case KNOB_POWER:                              // 电源键
+      case KNOB_POWER:                              // power button
         if (mod <= AkMODE_READYMAX || mod == AkMODE_PAIRING)
           cmod = AkMODE_L_5;
         else if (mod < AkMODE_APPMIN)
-          cmod = AkMODE_RETURN;                     // 恢复
+          cmod = AkMODE_RETURN;                     // resume
         else if (mod <= AkMODE_APPMAX)
-          cmod = AkMODE_READYMAX + 1;               // 暂停
+          cmod = AkMODE_READYMAX + 1;               // pause
         else if (mod >= AkMODE_L_1 || mod <= AkMODE_L_9)
           cmod = AkMODE_L_0;
         else if (mod == AkMODE_WAITNEXT || mod == AkMODE_PAUSE)
-          cmod = AkMODE_PREP;                       // 下一步
+          cmod = AkMODE_PREP;                       // next step
         else if (mod > AkMODE_PREP && mod != AkMODE_OFF)
-          cmod = AkMODE_PAUSE;                      // 暂停
+          cmod = AkMODE_PAUSE;                      // pause
         break;
       }
       break;
-    case EVENT_XPRESS:                              // 超长按
-      if(Knob_key == KNOB_POWER)                    //   电源键配对
+    case EVENT_XPRESS:                              // extra long press
+      if(Knob_key == KNOB_POWER)                    //  pairing
         cmod = AkMODE_PAIRING;
       break;
     }
@@ -547,10 +548,10 @@ int main(void) {
     }
     if(vled != cled) {
       vled = cled;
-      Light_OnParam(KEY_LED);                       // 设置指示灯
+      Light_OnParam(KEY_LED);                       // set led
     }
-    if(SCB_SpiUartGetRxBufferSize())                // 获取下行数据
-      stream(SCB_SpiUartReadRxData());              // 解析下行数据
+    if(SCB_SpiUartGetRxBufferSize())                // get downstream data
+      stream(SCB_SpiUartReadRxData());              // parse downstream data
   }
 }
 ```
