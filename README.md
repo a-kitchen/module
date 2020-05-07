@@ -6,7 +6,7 @@ Integrated control
 
 ![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/integrated.png)
 
-Pass through
+Passthrough
 
 ![schematic](https://raw.githubusercontent.com/a-kitchen/module/master/passthrough.png)
 
