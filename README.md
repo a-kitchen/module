@@ -1,12 +1,12 @@
 # FAQ
 
-* We believe the Blender should start to operate when an action is taken by a blender user after APP send operation order to the blender. This is for safety issue.
+We believe the Blender should start to operate when an action is taken by a blender user after APP send operation order to the blender. This is for safety issue.
 
-Our protocol have a solution for "user confirm by pressing/turning button then blender operate" when the APP is taking control of the blender. The products that we worked with other brandings already have the same feature.
+* Our protocol have a solution for "user confirm by pressing/turning button then blender operate" when the APP is taking control of the blender. The products that we worked with other brandings already have the same feature.
 
-* It looks like AK protocol is one-way.(AK module => NUC MCU). We think two-way protocol(AK module ó NUC MCU) is better than one way protocol. When a communication error occurs at a side, the other side can cope with it."
+It looks like AK protocol is one-way.(AK module => NUC MCU). We think two-way protocol(AK module ó NUC MCU) is better than one way protocol. When a communication error occurs at a side, the other side can cope with it."
 
-AK protocol is a two-way protocol, in the protocol document, upstream data means NUC MCU => AK module, downstream data means AK module => NUC MCU. Both upstream and downstream data share the same frame format but with different data keys.
+* AK protocol is a two-way protocol, in the protocol document, upstream data means NUC MCU => AK module, downstream data means AK module => NUC MCU. Both upstream and downstream data share the same frame format but with different data keys.
 
 
 # Module
