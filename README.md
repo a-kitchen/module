@@ -1,13 +1,13 @@
 # FAQ
 
-Q: For safety issue, the device should start to operate when an action is taken by a device user after APP send operation order. Can this feature be realized using AK protocol? 
+**Q:** For safety issue, the device should start to operate when an action is taken by a device user after APP send operation order. Can this feature be realized using AK protocol? 
 
-A: Our protocol have a solution for "user confirm by pressing/turning button then device operate" when the APP is taking control of the device. The products that we worked with other brandings already have the same feature.
+**A:** Our protocol have a solution for "user confirm by pressing/turning button then device operate" when the APP is taking control of the device. The products that we worked with other brandings already have the same feature.
 
 
-Q: Is AK protocol a one-way protocol(AK module => other MCU)?
+**Q:** Is AK protocol a one-way protocol(AK module => other MCU)?
 
-A: AK protocol is a two-way protocol(AK module <=> other MCU), in the document, upstream data means other MCU => AK module, downstream data means AK module => other MCU. Both upstream and downstream data share the same frame format but with different data keys.
+**A:** AK protocol is a two-way protocol(AK module <=> other MCU), in the document, upstream data means other MCU => AK module, downstream data means AK module => other MCU. Both upstream and downstream data share the same frame format but with different data keys.
 
 
 # Module
