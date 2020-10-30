@@ -226,7 +226,7 @@ In the example if initialized successfully，"hardware number (key = 0x88, 0x89)
 
 ## Flags (Key = 0x8a, 0x8b)
 
-* 0x8000 - bluetooth control
+* 0x8000 - bluetooth connected
 
 
 ## Pin
